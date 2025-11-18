@@ -1,6 +1,7 @@
 // Configurações do jogo
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const pixelsPorMetro = 3;
 
 // Ajustar canvas ao tamanho da tela
 function resizeCanvas() {
@@ -91,7 +92,7 @@ const game = {
             effect: () => {
                 const lost = Math.floor(game.points * 0.3);
                 game.points = Math.max(0, game.points - lost);
-                pointsDisplay.textContent = game.points;
+                pointsDisplay.textContent = Math.floor(game.points);
             }
         },
         { 
@@ -120,9 +121,9 @@ const game = {
         },
         { 
             name: 'Auditoria de Compliance', 
-            description: 'Equipe em auditoria! Ângulo fixo em 45° pelos próximos 20 segundos',
+            description: 'Equipe em auditoria! Ângulo fixo em 60° pelos próximos 20 segundos',
             effect: () => {
-                game.activePunishment = { type: 'fixedAngle', angle: 45, duration: 20, startTime: game.timeLeft };
+                game.activePunishment = { type: 'fixedAngle', angle: 60, duration: 20, startTime: game.timeLeft };
             }
         },
         { 
@@ -179,7 +180,7 @@ class Projectile {
     constructor(power, angle) {
         this.x = 200;
         this.y = canvas.height / 2;
-        this.velocityX = power * Math.cos(angle * Math.PI / 180) * 5;
+        this.velocityX = power * Math.cos(angle * Math.PI / 180) * 14;
         this.velocityY = -power * Math.sin(angle * Math.PI / 180) * 5;
         this.gravity = 0.4;
         this.drag = 0.992;
@@ -197,7 +198,7 @@ class Projectile {
             this.y += this.velocityY;
             this.rotation += 0.1;
             
-            this.distanceTraveled = Math.max(0, (this.x - 200) * 15);
+            this.distanceTraveled = Math.max(0, (this.x - 200) / pixelsPorMetro);
 
             const groundLevel = canvas.height - 100;
             if (this.y >= groundLevel) {
@@ -657,11 +658,11 @@ function drawScene() {
     ctx.font = 'bold 20px Arial';
     ctx.textAlign = 'center';
     
-    const finishPixelX = 200 + (game.finishDistance * 5);
+    const finishPixelX = 200 + (game.finishDistance * pixelsPorMetro);
     
     // Marcações principais a cada 1.000m
     for (let i = 0; i <= game.finishDistance; i += 1000) {
-        const x = 200 + (i * 5);
+        const x = 200 + (i * pixelsPorMetro);
         
         ctx.fillStyle = game.dayNightCycle.isDay ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.8)';
         ctx.fillRect(x - 3, groundLevel - 50, 6, 40);
@@ -673,7 +674,7 @@ function drawScene() {
     // Marcações menores a cada 100m
     for (let i = 100; i <= game.finishDistance; i += 100) {
         if (i % 1000 !== 0) {
-            const x = 200 + (i * 5);
+            const x = 200 + (i * pixelsPorMetro);
             ctx.fillStyle = game.dayNightCycle.isDay ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.4)';
             ctx.fillRect(x - 2, groundLevel - 25, 4, 15);
         }
@@ -682,14 +683,14 @@ function drawScene() {
     // Marcações muito pequenas a cada 10m
     for (let i = 10; i <= game.finishDistance; i += 10) {
         if (i % 100 !== 0) {
-            const x = 200 + (i * 5);
+            const x = 200 + (i * pixelsPorMetro);
             ctx.fillStyle = game.dayNightCycle.isDay ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.2)';
             ctx.fillRect(x - 1, groundLevel - 12, 2, 8);
         }
     }
     
     game.milestones.forEach((milestone, index) => {
-        const milestoneX = 200 + (milestone.distance * 5);
+        const milestoneX = 200 + (milestone.distance * pixelsPorMetro);
         
         ctx.fillStyle = milestone.completed ? 'rgba(0, 255, 0, 0.6)' : 'rgba(255, 165, 0, 0.6)';
         ctx.fillRect(milestoneX - 4, groundLevel - 70, 8, 60);
@@ -793,7 +794,7 @@ function updateGame() {
             }
             
             game.points += earnedPoints;
-            pointsDisplay.textContent = game.points;
+            pointsDisplay.textContent = Math.floor(game.points);
             
             if (game.distance >= game.finishDistance) {
                 endGame(true);
@@ -917,7 +918,7 @@ function purchaseUpgrade(upgrade, cost) {
     
     if (game.points >= cost && currentLevel < upgrade.maxLevel) {
         game.points -= cost;
-        pointsDisplay.textContent = game.points;
+        pointsDisplay.textContent = Math.floor(game.points);
         game.upgradeLevels[upgrade.id] = currentLevel + 1;
         
         if (currentLevel === 0) {
@@ -942,7 +943,7 @@ function endGame(won) {
             <strong>Parabéns!</strong><br>
             Você concluiu o projeto a tempo!<br><br>
             🏆 Melhor Distância: ${formatDistance(game.bestDistance)}<br>
-            💰 Total de Sprint Points: ${game.points}<br>
+            💰 Total de Sprint Points: ${Math.floor(game.points)}<br>
             ⏱️ Tempo Restante: ${Math.floor(game.timeLeft / 60)}:${(game.timeLeft % 60).toString().padStart(2, '0')}
         `;
     } else {
@@ -951,7 +952,7 @@ function endGame(won) {
             <strong>O prazo acabou!</strong><br>
             O projeto não foi concluído a tempo.<br><br>
             📊 Melhor Tentativa: ${formatDistance(game.bestDistance)} de ${formatDistance(game.finishDistance)}<br>
-            💰 Sprint Points Ganhos: ${game.points}<br><br>
+            💰 Sprint Points Ganhos: ${Math.floor(game.points)}<br><br>
             <em>Lembre-se: Na metodologia ágil, aprendemos com cada sprint!</em>
         `;
     }
@@ -1125,8 +1126,21 @@ function gameLoop() {
     lastTime = currentTime;
     
     drawScene();
-    
+    const isGameActive = upgradeModal.style.display === 'none';
+
     if (!game.gameOver) {
+        if(!isGameActive) {
+            game.timeLeft -= deltaTime;
+            if (game.timeLeft <= 0) {
+                game.timeLeft = 0;
+                endGame(false);
+            }
+
+            // Atualiza o texto do timer na tela
+            const minutes = Math.floor(game.timeLeft / 60);
+            const seconds = Math.floor(game.timeLeft % 60);
+            timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
         if (game.isCharging) {
             updatePowerAndAngle();
         }
@@ -1183,7 +1197,7 @@ function gameLoop() {
                 }
                 
                 game.points += earnedPoints;
-                pointsDisplay.textContent = game.points;
+                pointsDisplay.textContent = Math.floor(game.points);
                 
                 if (game.distance >= game.finishDistance) {
                     endGame(true);
@@ -1220,10 +1234,12 @@ function gameLoop() {
             ctx.fill();
             ctx.restore();
         }
+        if(!isGameActive) {
+            checkMilestones(deltaTime);
+            updateActivePunishments();
+        }
     }
     
-    checkMilestones(deltaTime);
-    updateActivePunishments();
     requestAnimationFrame(gameLoop);
 }
 
