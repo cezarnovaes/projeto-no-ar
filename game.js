@@ -33,6 +33,7 @@ const game = {
     upgrades: {},
     upgradeLevels: {},
     gameOver: false,
+    isPaused: false,
     camera: {
         x: 0,
         y: 0,
@@ -81,7 +82,7 @@ const game = {
         },
         { 
             name: 'Cliente Insatisfeito', 
-            description: 'Cliente furioso! Pr��ximos 3 lançamentos não geram pontos',
+            description: 'Cliente furioso! Próximos 3 lançamentos não geram pontos',
             effect: () => {
                 game.activePunishment = { type: 'noPoints', launches: 3, remaining: 3 };
             }
@@ -180,8 +181,10 @@ class Projectile {
     constructor(power, angle) {
         this.x = 200;
         this.y = canvas.height / 2;
-        this.velocityX = power * Math.cos(angle * Math.PI / 180) * 14;
-        this.velocityY = -power * Math.sin(angle * Math.PI / 180) * 5;
+        const radians = angle * Math.PI / 180;
+        const baseVelocity = power * 14;
+        this.velocityX = baseVelocity * Math.cos(radians);
+        this.velocityY = -baseVelocity * Math.sin(radians);
         this.gravity = 0.4;
         this.drag = 0.992;
         this.rotation = 0;
@@ -218,7 +221,6 @@ class Projectile {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.rotation);
         
-        // Desenhar gerente careca de terno
         ctx.fillStyle = '#fdbcb4';
         ctx.beginPath();
         ctx.arc(0, -15, 15, 0, Math.PI * 2);
@@ -466,6 +468,20 @@ const distanceDisplay = document.getElementById('distance');
 const bestDistanceDisplay = document.getElementById('best-distance');
 const timerDisplay = document.getElementById('timer');
 const pointsDisplay = document.getElementById('points');
+const modalPoints = document.getElementById('modal-points');
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.type === 'characterData' || mutation.type === 'childList') {
+            modalPoints.textContent = pointsDisplay.textContent;
+        }
+    });
+});
+
+observer.observe(pointsDisplay, {
+    characterData: true,
+    childList: true,
+    subtree: true
+});
 const upgradeModal = document.getElementById('upgrade-modal');
 const gameoverModal = document.getElementById('gameover-modal');
 const continueButton = document.getElementById('continue-button');
@@ -476,17 +492,40 @@ const finishLine = document.getElementById('finish-line');
 const punishmentNotification = document.getElementById('punishment-notification');
 const punishmentText = document.getElementById('punishment-text');
 
-// Event Listeners
-launchButton.addEventListener('mousedown', startCharging);
-launchButton.addEventListener('mouseup', launch);
-launchButton.addEventListener('touchstart', (e) => { e.preventDefault(); startCharging(); });
-launchButton.addEventListener('touchend', (e) => { e.preventDefault(); launch(); });
-continueButton.addEventListener('click', closeUpgradeModal);
-restartButton.addEventListener('click', restartGame);
+// Funções auxiliares
+function interpolateColor(color1, color2, factor) {
+    const c1 = hexToRgb(color1);
+    const c2 = hexToRgb(color2);
+    const r = Math.round(c1.r + (c2.r - c1.r) * factor);
+    const g = Math.round(c1.g + (c2.g - c1.g) * factor);
+    const b = Math.round(c1.b + (c2.b - c1.b) * factor);
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : { r: 0, g: 0, b: 0 };
+}
+
+function formatDistance(meters) {
+    return meters + 'm';
+}
+
+function getUpgradeCost(upgrade, currentLevel) {
+    return Math.floor(upgrade.baseCost * Math.pow(1.5, currentLevel));
+}
+
+function updateFinishLine() {
+    document.getElementById('finish-distance').textContent = formatDistance(game.finishDistance);
+}
 
 // Funções de controle
 function startCharging() {
-    if (game.isLaunched || game.gameOver) return;
+    if (game.isLaunched || game.gameOver || game.isPaused) return;
     if (game.activePunishment && game.activePunishment.type === 'lockLaunch') {
         return;
     }
@@ -532,6 +571,10 @@ function launch() {
     
     game.isLaunched = true;
     game.launchCount++;
+    
+    if (game.launchCount === 1 && !game.milestoneActive) {
+        game.milestoneActive = true;
+    }
     
     hud.style.display = 'none';
     controlPanel.style.display = 'none';
@@ -592,13 +635,11 @@ function drawScene() {
     let skyColor1, skyColor2, groundColor, grassColor;
     
     if (game.dayNightCycle.isDay) {
-        const dayProgress = (cycleProgress * 2);
         skyColor1 = '#87CEEB';
         skyColor2 = '#E0F6FF';
         groundColor = '#8B7355';
         grassColor = '#90EE90';
     } else {
-        const nightProgress = ((cycleProgress - 0.5) * 2);
         skyColor1 = '#0a1128';
         skyColor2 = '#1a1a3e';
         groundColor = '#4a3f35';
@@ -654,14 +695,18 @@ function drawScene() {
     ctx.save();
     ctx.translate(-game.camera.x, -game.camera.y);
     
+    const viewLeft = game.camera.x;
+    const viewRight = game.camera.x + canvas.width;
+    const startDistance = Math.max(0, Math.floor((viewLeft - 200) / pixelsPorMetro / 1000) * 1000);
+    const endDistance = Math.ceil((viewRight - 200) / pixelsPorMetro / 1000) * 1000;
+    
     ctx.fillStyle = game.dayNightCycle.isDay ? '#654321' : '#ffffff';
     ctx.font = 'bold 20px Arial';
     ctx.textAlign = 'center';
     
     const finishPixelX = 200 + (game.finishDistance * pixelsPorMetro);
     
-    // Marcações principais a cada 1.000m
-    for (let i = 0; i <= game.finishDistance; i += 1000) {
+    for (let i = startDistance; i <= Math.min(endDistance, game.finishDistance); i += 1000) {
         const x = 200 + (i * pixelsPorMetro);
         
         ctx.fillStyle = game.dayNightCycle.isDay ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.8)';
@@ -671,35 +716,45 @@ function drawScene() {
         ctx.fillText(i + 'm', x, groundLevel - 55);
     }
     
-    // Marcações menores a cada 100m
-    for (let i = 100; i <= game.finishDistance; i += 100) {
+    for (let i = Math.max(100, startDistance); i <= Math.min(endDistance, game.finishDistance); i += 100) {
         if (i % 1000 !== 0) {
             const x = 200 + (i * pixelsPorMetro);
-            ctx.fillStyle = game.dayNightCycle.isDay ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.4)';
-            ctx.fillRect(x - 2, groundLevel - 25, 4, 15);
-        }
-    }
-    
-    // Marcações muito pequenas a cada 10m
-    for (let i = 10; i <= game.finishDistance; i += 10) {
-        if (i % 100 !== 0) {
-            const x = 200 + (i * pixelsPorMetro);
-            ctx.fillStyle = game.dayNightCycle.isDay ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.2)';
-            ctx.fillRect(x - 1, groundLevel - 12, 2, 8);
+            if (x >= viewLeft && x <= viewRight) {
+                ctx.fillStyle = game.dayNightCycle.isDay ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.4)';
+                ctx.fillRect(x - 2, groundLevel - 25, 4, 15);
+            }
         }
     }
     
     game.milestones.forEach((milestone, index) => {
         const milestoneX = 200 + (milestone.distance * pixelsPorMetro);
         
-        ctx.fillStyle = milestone.completed ? 'rgba(0, 255, 0, 0.6)' : 'rgba(255, 165, 0, 0.6)';
-        ctx.fillRect(milestoneX - 4, groundLevel - 70, 8, 60);
-        
-        ctx.fillStyle = milestone.completed ? '#00ff00' : '#ffa500';
-        ctx.font = 'bold 16px Arial';
-        ctx.fillText(`M${index + 1}`, milestoneX, groundLevel - 75);
-        ctx.font = 'bold 12px Arial';
-        ctx.fillText(milestone.distance + 'm', milestoneX, groundLevel + 15);
+        if (milestoneX >= viewLeft - 100 && milestoneX <= viewRight + 100) {
+            let color, borderColor;
+            if (milestone.completed) {
+                color = 'rgba(0, 255, 0, 0.6)';
+                borderColor = '#00ff00';
+            } else if (index === game.currentMilestoneIndex && game.milestoneActive) {
+                color = 'rgba(255, 215, 0, 0.6)';
+                borderColor = '#ffd700';
+            } else {
+                color = 'rgba(255, 165, 0, 0.3)';
+                borderColor = '#ffa500';
+            }
+            
+            ctx.fillStyle = color;
+            ctx.fillRect(milestoneX - 4, groundLevel - 70, 8, 60);
+            
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(milestoneX - 4, groundLevel - 70, 8, 60);
+            
+            ctx.fillStyle = borderColor;
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText(`M${index + 1}`, milestoneX, groundLevel - 75);
+            ctx.font = 'bold 12px Arial';
+            ctx.fillText(milestone.distance + 'm', milestoneX, groundLevel + 15);
+        }
     });
     
     ctx.strokeStyle = game.dayNightCycle.isDay ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.5)';
@@ -735,291 +790,66 @@ function drawScene() {
     ctx.restore();
 }
 
-function updateGame() {
-    if (game.gameOver) return;
+function handleProjectileUpdate() {
+    const stillFlying = game.projectile.update();
+    let distance = Math.round(game.projectile.distanceTraveled);
     
-    if (game.isCharging) {
-        updatePowerAndAngle();
+    if (game.projectile.halfDistanceFlag) {
+        distance = Math.floor(distance * 0.5);
     }
     
-    if (game.isLaunched && game.projectile) {
-        const stillFlying = game.projectile.update();
-        let distance = Math.round(game.projectile.distanceTraveled);
+    game.distance = distance;
+    
+    game.camera.targetX = Math.max(0, game.projectile.x - canvas.width / 3);
+    game.camera.targetY = Math.max(0, Math.min(game.projectile.y - canvas.height / 2, 200));
+    
+    game.camera.x += (game.camera.targetX - game.camera.x) * game.camera.smoothing;
+    game.camera.y += (game.camera.targetY - game.camera.y) * game.camera.smoothing;
+    
+    if (!stillFlying) {
+        game.isLaunched = false;
         
-        if (game.projectile.halfDistanceFlag) {
-            distance = Math.floor(distance * 0.5);
+        game.camera.x = 0;
+        game.camera.targetX = 0;
+        game.camera.y = 0;
+        game.camera.targetY = 0;
+        
+        hud.style.display = 'flex';
+        controlPanel.style.display = 'flex';
+        finishLine.style.display = 'block';
+        
+        distanceDisplay.textContent = formatDistance(game.distance);
+        
+        if (game.distance > game.bestDistance) {
+            game.bestDistance = game.distance;
+            bestDistanceDisplay.textContent = formatDistance(game.bestDistance);
         }
         
-        game.distance = distance;
-        
-        game.camera.targetX = Math.max(0, game.projectile.x - canvas.width / 3);
-        game.camera.targetY = Math.max(0, Math.min(game.projectile.y - canvas.height / 2, 200));
-        
-        game.camera.x += (game.camera.targetX - game.camera.x) * game.camera.smoothing;
-        game.camera.y += (game.camera.targetY - game.camera.y) * game.camera.smoothing;
-        
-        if (!stillFlying) {
-            game.isLaunched = false;
-            
-            game.camera.x = 0;
-            game.camera.targetX = 0;
-            game.camera.y = 0;
-            game.camera.targetY = 0;
-            
-            hud.style.display = 'flex';
-            controlPanel.style.display = 'flex';
-            finishLine.style.display = 'block';
-            
-            distanceDisplay.textContent = formatDistance(game.distance);
-            
-            if (game.distance > game.bestDistance) {
-                game.bestDistance = game.distance;
-                bestDistanceDisplay.textContent = formatDistance(game.bestDistance);
-            }
-            
-            let earnedPoints = Math.floor(game.distance / 100) * (game.upgrades.pointsMultiplier || 1);
-            if (game.activePunishment && game.activePunishment.type === 'noPoints' && game.activePunishment.remaining > 0) {
-                game.activePunishment.remaining--;
-                earnedPoints = 0;
-                if (game.activePunishment.remaining <= 0) {
-                    game.activePunishment = null;
-                }
-            }
-            
-            if (game.activePunishment && game.activePunishment.type === 'halfDistance' && game.activePunishment.remaining > 0) {
-                game.activePunishment.remaining--;
-                if (game.activePunishment.remaining <= 0) {
-                    game.activePunishment = null;
-                }
-            }
-            
-            game.points += earnedPoints;
-            pointsDisplay.textContent = Math.floor(game.points);
-            
-            if (game.distance >= game.finishDistance) {
-                endGame(true);
-            } else {
-                showUpgradeModal();
+        let earnedPoints = Math.floor(game.distance / 100) * (game.upgrades.pointsMultiplier || 1);
+        if (game.activePunishment && game.activePunishment.type === 'noPoints' && game.activePunishment.remaining > 0) {
+            game.activePunishment.remaining--;
+            earnedPoints = 0;
+            if (game.activePunishment.remaining <= 0) {
+                game.activePunishment = null;
             }
         }
         
-        if (game.projectile) {
-            ctx.save();
-            ctx.translate(-game.camera.x, -game.camera.y);
-            game.projectile.draw();
-            ctx.restore();
-        }
-    }
-    
-    if (game.isCharging && !game.isLaunched) {
-        ctx.save();
-        ctx.translate(200 - game.camera.x, canvas.height / 2 - game.camera.y);
-        ctx.rotate(-game.angle * Math.PI / 180);
-        ctx.strokeStyle = 'rgba(107, 207, 127, 0.8)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(100, 0);
-        ctx.stroke();
-        
-        ctx.fillStyle = 'rgba(107, 207, 127, 0.8)';
-        ctx.beginPath();
-        ctx.moveTo(100, 0);
-        ctx.lineTo(90, -5);
-        ctx.lineTo(90, 5);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-    }
-}
-
-function getUpgradeCost(upgrade, currentLevel) {
-    return Math.floor(upgrade.baseCost * Math.pow(1.5, currentLevel));
-}
-
-function interpolateColor(color1, color2, factor) {
-    const c1 = hexToRgb(color1);
-    const c2 = hexToRgb(color2);
-    const r = Math.round(c1.r + (c2.r - c1.r) * factor);
-    const g = Math.round(c1.g + (c2.g - c1.g) * factor);
-    const b = Math.round(c1.b + (c2.b - c1.b) * factor);
-    return `rgb(${r}, ${g}, ${b})`;
-}
-
-function hexToRgb(hex) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : { r: 0, g: 0, b: 0 };
-}
-
-function formatDistance(meters) {
-    return meters + 'm';
-}
-
-// Modal de Upgrades
-function showUpgradeModal() {
-    const upgradesList = document.getElementById('upgrades-list');
-    const modalDistance = document.getElementById('modal-distance');
-    const modalPoints = document.getElementById('modal-points');
-    const resultText = document.getElementById('result-text');
-    
-    modalDistance.textContent = formatDistance(game.distance);
-    modalPoints.textContent = '💰 ' + Math.floor(game.points) + ' SP';
-    resultText.textContent = game.distance >= game.finishDistance ? 
-        '🎉 Projeto Concluído!' : 
-        '📊 Projeto em andamento...';
-    
-    upgradesList.innerHTML = '';
-    
-    upgradesDatabase.forEach(upgrade => {
-        const card = document.createElement('div');
-        card.className = 'upgrade-card';
-        
-        const currentLevel = game.upgradeLevels[upgrade.id] || 0;
-        const isMaxLevel = currentLevel >= upgrade.maxLevel;
-        const cost = getUpgradeCost(upgrade, currentLevel);
-        const canAfford = game.points >= cost;
-        
-        if (currentLevel === upgrade.maxLevel) {
-            card.classList.add('max-level');
-            card.style.background = 'linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%)';
-            card.style.border = '3px solid #ff8c00';
-            card.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.8)';
-            card.style.animation = 'goldenGlow 2s infinite';
-        } else if (currentLevel > 0) {
-            card.classList.add('purchased');
-        } else if (!canAfford) {
-            card.classList.add('locked');
+        if (game.activePunishment && game.activePunishment.type === 'halfDistance' && game.activePunishment.remaining > 0) {
+            game.activePunishment.remaining--;
+            if (game.activePunishment.remaining <= 0) {
+                game.activePunishment = null;
+            }
         }
         
-        const description = upgrade.getDescription ? upgrade.getDescription(currentLevel + 1) : upgrade.description;
-        
-        card.innerHTML = `
-            <div class="upgrade-icon">${upgrade.icon}</div>
-            <div class="upgrade-title">${upgrade.name}</div>
-            <div class="upgrade-description">${description}</div>
-            <div class="upgrade-cost">${isMaxLevel ? '⭐ MÁXIMO' : '💰 ' + cost + ' SP'}</div>
-            ${currentLevel > 0 ? `<div class="upgrade-badge">NÍVEL ${currentLevel}</div>` : ''}
-        `;
-        
-        if (!isMaxLevel && canAfford) {
-            card.addEventListener('click', () => purchaseUpgrade(upgrade, cost));
-        }
-        
-        upgradesList.appendChild(card);
-    });
-    
-    upgradeModal.style.display = 'block';
-}
-
-function purchaseUpgrade(upgrade, cost) {
-    const currentLevel = game.upgradeLevels[upgrade.id] || 0;
-    
-    if (game.points >= cost && currentLevel < upgrade.maxLevel) {
-        game.points -= cost;
+        game.points += earnedPoints;
         pointsDisplay.textContent = Math.floor(game.points);
-        game.upgradeLevels[upgrade.id] = currentLevel + 1;
         
-        if (currentLevel === 0) {
-            game.upgrades[upgrade.id] = true;
+        if (game.distance >= game.finishDistance) {
+            endGame(true);
+        } else {
+            showUpgradeModal();
         }
-        
-        upgrade.effect(game.upgradeLevels[upgrade.id]);
-        
-        showUpgradeModal();
     }
-}
-
-// Game Over
-function endGame(won) {
-    game.gameOver = true;
-    const title = document.getElementById('gameover-title');
-    const message = document.getElementById('gameover-message');
-    
-    if (won) {
-        title.textContent = '🎉 Projeto Entregue com Sucesso!';
-        message.innerHTML = `
-            <strong>Parabéns!</strong><br>
-            Você concluiu o projeto a tempo!<br><br>
-            🏆 Melhor Distância: ${formatDistance(game.bestDistance)}<br>
-            💰 Total de Sprint Points: ${Math.floor(game.points)}<br>
-            ⏱️ Tempo Restante: ${Math.floor(game.timeLeft / 60)}:${(game.timeLeft % 60).toString().padStart(2, '0')}
-        `;
-    } else {
-        title.textContent = '⏰ Deadline Atingido!';
-        message.innerHTML = `
-            <strong>O prazo acabou!</strong><br>
-            O projeto não foi concluído a tempo.<br><br>
-            📊 Melhor Tentativa: ${formatDistance(game.bestDistance)} de ${formatDistance(game.finishDistance)}<br>
-            💰 Sprint Points Ganhos: ${Math.floor(game.points)}<br><br>
-            <em>Lembre-se: Na metodologia ágil, aprendemos com cada sprint!</em>
-        `;
-    }
-    
-    gameoverModal.style.display = 'block';
-}
-
-function restartGame() {
-    game.power = 0;
-    game.angle = 45;
-    game.powerDirection = 1;
-    game.angleDirection = 1;
-    game.isCharging = false;
-    game.isLaunched = false;
-    game.distance = 0;
-    game.bestDistance = 0;
-    game.points = 0;
-    game.timeLeft = 600;
-    game.finishDistance = 100000;
-    game.projectile = null;
-    game.upgrades = {};
-    game.upgradeLevels = {};
-    game.gameOver = false;
-    game.camera.x = 0;
-    game.camera.y = 0;
-    game.camera.targetX = 0;
-    game.camera.targetY = 0;
-    game.dayNightCycle.time = 0;
-    game.dayNightCycle.isDay = true;
-    // Resetar sistema de metas
-    game.currentMilestoneIndex = 0;
-    game.milestones = [
-        { distance: 5000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
-        { distance: 15000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
-        { distance: 30000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 45000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 60000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 75000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
-        { distance: 90000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
-        { distance: 100000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 }
-    ];
-    game.milestoneActive = false;
-    game.usedPunishments = [];
-    game.activePunishment = null;
-    game.launchCount = 0;
-    
-    distanceDisplay.textContent = '0m';
-    bestDistanceDisplay.textContent = '0m';
-    pointsDisplay.textContent = '0';
-    timerDisplay.textContent = '10:00';
-    timerDisplay.style.color = '#ffd700';
-    timerDisplay.style.animation = 'none';
-    punishmentNotification.style.display = 'none';
-    updateFinishLine();
-    
-    hud.style.display = 'flex';
-    controlPanel.style.display = 'flex';
-    finishLine.style.display = 'block';
-    
-    gameoverModal.style.display = 'none';
-}
-
-// Função para atualizar a linha de chegada
-function updateFinishLine() {
-    document.getElementById('finish-distance').textContent = formatDistance(game.finishDistance);
 }
 
 function checkMilestones(deltaTime) {
@@ -1029,42 +859,42 @@ function checkMilestones(deltaTime) {
     
     const currentMilestone = game.milestones[game.currentMilestoneIndex];
     
-    if (!game.milestoneActive && !currentMilestone.checked) {
-        game.milestoneActive = true;
+    if (!game.milestoneActive || currentMilestone.checked) {
+        return;
     }
     
-    if (game.milestoneActive && !currentMilestone.checked) {
-        currentMilestone.timeRemaining -= deltaTime;
+    currentMilestone.timeRemaining -= deltaTime;
+    
+    const milestoneTimerDisplay = document.getElementById('milestone-timer');
+    const minutes = Math.floor(currentMilestone.timeRemaining / 60);
+    const seconds = Math.floor(currentMilestone.timeRemaining % 60);
+    milestoneTimerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    const milestoneInfoDisplay = document.getElementById('milestone-info');
+    milestoneInfoDisplay.textContent = `Meta ${game.currentMilestoneIndex + 1}: ${currentMilestone.distance}m`;
+    
+    if (game.bestDistance >= currentMilestone.distance) {
+        currentMilestone.completed = true;
+        currentMilestone.checked = true;
+        game.milestoneActive = false;
+        game.currentMilestoneIndex++;
         
-        const milestoneTimerDisplay = document.getElementById('milestone-timer');
-        const minutes = Math.floor(currentMilestone.timeRemaining / 60);
-        const seconds = Math.floor(currentMilestone.timeRemaining % 60);
-        milestoneTimerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        if (game.currentMilestoneIndex < game.milestones.length) {
+            const nextMilestone = game.milestones[game.currentMilestoneIndex];
+            nextMilestone.timeRemaining = nextMilestone.timeLimit;
+            game.milestoneActive = true;
+        }
+    } else if (currentMilestone.timeRemaining <= 0) {
+        currentMilestone.completed = false;
+        currentMilestone.checked = true;
+        game.milestoneActive = false;
+        applyRandomPunishment(currentMilestone);
+        game.currentMilestoneIndex++;
         
-        const milestoneInfoDisplay = document.getElementById('milestone-info');
-        milestoneInfoDisplay.textContent = `Meta ${game.currentMilestoneIndex + 1}: ${currentMilestone.distance}m`;
-        
-        if (game.bestDistance >= currentMilestone.distance) {
-            currentMilestone.completed = true;
-            currentMilestone.checked = true;
-            game.milestoneActive = false;
-            game.currentMilestoneIndex++;
-            
-            if (game.currentMilestoneIndex < game.milestones.length) {
-                const nextMilestone = game.milestones[game.currentMilestoneIndex];
-                nextMilestone.timeRemaining = nextMilestone.timeLimit;
-            }
-        } else if (currentMilestone.timeRemaining <= 0) {
-            currentMilestone.completed = false;
-            currentMilestone.checked = true;
-            game.milestoneActive = false;
-            applyRandomPunishment(currentMilestone);
-            game.currentMilestoneIndex++;
-            
-            if (game.currentMilestoneIndex < game.milestones.length) {
-                const nextMilestone = game.milestones[game.currentMilestoneIndex];
-                nextMilestone.timeRemaining = nextMilestone.timeLimit;
-            }
+        if (game.currentMilestoneIndex < game.milestones.length) {
+            const nextMilestone = game.milestones[game.currentMilestoneIndex];
+            nextMilestone.timeRemaining = nextMilestone.timeLimit;
+            game.milestoneActive = true;
         }
     }
 }
@@ -1120,6 +950,190 @@ function updateActivePunishments() {
     }
 }
 
+function showUpgradeModal() {
+    game.isPaused = true;
+    const upgradesList = document.getElementById('upgrades-list');
+    const modalDistance = document.getElementById('modal-distance');
+    const resultText = document.getElementById('result-text');
+    
+    modalDistance.textContent = formatDistance(game.distance);
+    resultText.textContent = game.distance >= game.finishDistance ? 
+        '🎉 Projeto Concluído!' : 
+        '📊 Projeto em andamento...';
+    
+    upgradesList.innerHTML = '';
+    
+    const upgradesBlocked = game.activePunishment && game.activePunishment.type === 'noUpgrades';
+    
+    if (upgradesBlocked) {
+        const blockedMessage = document.createElement('div');
+        blockedMessage.style.cssText = 'grid-column: 1 / -1; text-align: center; color: #ff6b6b; font-size: 18px; font-weight: bold; padding: 20px; background: rgba(255, 107, 107, 0.2); border-radius: 10px; margin-bottom: 20px;';
+        blockedMessage.textContent = '🔒 Licença de Software Expirou! Upgrades bloqueados temporariamente.';
+        upgradesList.appendChild(blockedMessage);
+    }
+    
+    upgradesDatabase.forEach(upgrade => {
+        const card = document.createElement('div');
+        card.className = 'upgrade-card';
+        
+        const currentLevel = game.upgradeLevels[upgrade.id] || 0;
+        const isMaxLevel = currentLevel >= upgrade.maxLevel;
+        const cost = getUpgradeCost(upgrade, currentLevel);
+        const canAfford = game.points >= cost;
+        
+        if (currentLevel === upgrade.maxLevel) {
+            card.classList.add('max-level');
+            card.style.background = 'linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%)';
+            card.style.border = '3px solid #ff8c00';
+            card.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.8)';
+            card.style.animation = 'goldenGlow 2s infinite';
+        } else if (currentLevel > 0) {
+            card.classList.add('purchased');
+        } else if (!canAfford || upgradesBlocked) {
+            card.classList.add('locked');
+        }
+        
+        const description = upgrade.getDescription ? upgrade.getDescription(currentLevel + 1) : upgrade.description;
+        
+        card.innerHTML = `
+            <div class="upgrade-icon">${upgrade.icon}</div>
+            <div class="upgrade-title">${upgrade.name}</div>
+            <div class="upgrade-description">${description}</div>
+            <div class="upgrade-cost">${isMaxLevel ? '⭐ MÁXIMO' : '💰 ' + cost + ' SP'}</div>
+            ${currentLevel > 0 ? `<div class="upgrade-badge">NÍVEL ${currentLevel}</div>` : ''}
+        `;
+        
+        if (!isMaxLevel && canAfford && !upgradesBlocked) {
+            card.addEventListener('click', () => purchaseUpgrade(upgrade, cost));
+        }
+        
+        upgradesList.appendChild(card);
+    });
+    
+    upgradeModal.style.display = 'block';
+}
+
+function purchaseUpgrade(upgrade, cost) {
+    const currentLevel = game.upgradeLevels[upgrade.id] || 0;
+    
+    if (game.activePunishment && game.activePunishment.type === 'noUpgrades') {
+        return;
+    }
+    
+    if (game.points >= cost && currentLevel < upgrade.maxLevel) {
+        game.points -= cost;
+        pointsDisplay.textContent = Math.floor(game.points);
+        game.upgradeLevels[upgrade.id] = currentLevel + 1;
+        
+        if (currentLevel === 0) {
+            game.upgrades[upgrade.id] = true;
+        }
+        
+        upgrade.effect(game.upgradeLevels[upgrade.id]);
+        
+        showUpgradeModal();
+    }
+}
+
+function closeUpgradeModal() {
+    upgradeModal.style.display = 'none';
+    game.isPaused = false;
+    game.projectile = null;
+    game.distance = 0;
+    distanceDisplay.textContent = '0m';
+}
+
+function endGame(won) {
+    game.gameOver = true;
+    const title = document.getElementById('gameover-title');
+    const message = document.getElementById('gameover-message');
+    
+    if (won) {
+        title.textContent = '🎉 Projeto Entregue com Sucesso!';
+        message.innerHTML = `
+            <strong>Parabéns!</strong><br>
+            Você concluiu o projeto a tempo!<br><br>
+            🏆 Melhor Distância: ${formatDistance(game.bestDistance)}<br>
+            💰 Total de Sprint Points: ${Math.floor(game.points)}<br>
+            ⏱️ Tempo Restante: ${Math.floor(game.timeLeft / 60)}:${(game.timeLeft % 60).toString().padStart(2, '0')}
+        `;
+    } else {
+        title.textContent = '⏰ Deadline Atingido!';
+        message.innerHTML = `
+            <strong>O prazo acabou!</strong><br>
+            O projeto não foi concluído a tempo.<br><br>
+            📊 Melhor Tentativa: ${formatDistance(game.bestDistance)} de ${formatDistance(game.finishDistance)}<br>
+            💰 Sprint Points Ganhos: ${Math.floor(game.points)}<br><br>
+            <em>Lembre-se: Na metodologia ágil, aprendemos com cada sprint!</em>
+        `;
+    }
+    
+    gameoverModal.style.display = 'block';
+}
+
+function restartGame() {
+    game.power = 0;
+    game.angle = 45;
+    game.powerDirection = 1;
+    game.angleDirection = 1;
+    game.isCharging = false;
+    game.isLaunched = false;
+    game.distance = 0;
+    game.bestDistance = 0;
+    game.points = 0;
+    game.timeLeft = 600;
+    game.finishDistance = 100000;
+    game.projectile = null;
+    game.upgrades = {};
+    game.upgradeLevels = {};
+    game.gameOver = false;
+    game.isPaused = false;
+    game.camera.x = 0;
+    game.camera.y = 0;
+    game.camera.targetX = 0;
+    game.camera.targetY = 0;
+    game.dayNightCycle.time = 0;
+    game.dayNightCycle.isDay = true;
+    game.currentMilestoneIndex = 0;
+    game.milestones = [
+        { distance: 5000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 15000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
+        { distance: 30000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 45000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 60000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 75000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
+        { distance: 90000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 100000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 }
+    ];
+    game.milestoneActive = false;
+    game.usedPunishments = [];
+    game.activePunishment = null;
+    game.launchCount = 0;
+    
+    distanceDisplay.textContent = '0m';
+    bestDistanceDisplay.textContent = '0m';
+    pointsDisplay.textContent = '0';
+    timerDisplay.textContent = '10:00';
+    timerDisplay.style.color = '#ffd700';
+    timerDisplay.style.animation = 'none';
+    punishmentNotification.style.display = 'none';
+    updateFinishLine();
+    
+    hud.style.display = 'flex';
+    controlPanel.style.display = 'flex';
+    finishLine.style.display = 'block';
+    
+    gameoverModal.style.display = 'none';
+}
+
+// Event Listeners
+launchButton.addEventListener('mousedown', startCharging);
+launchButton.addEventListener('mouseup', launch);
+launchButton.addEventListener('touchstart', (e) => { e.preventDefault(); startCharging(); });
+launchButton.addEventListener('touchend', (e) => { e.preventDefault(); launch(); });
+continueButton.addEventListener('click', closeUpgradeModal);
+restartButton.addEventListener('click', restartGame);
+
 // Loop do jogo
 let lastTime = Date.now();
 function gameLoop() {
@@ -1128,128 +1142,69 @@ function gameLoop() {
     lastTime = currentTime;
     
     drawScene();
-    const isGameActive = upgradeModal.style.display === 'none';
 
-    if (!game.gameOver) {
-        if(!isGameActive) {
-            game.timeLeft -= deltaTime;
-            if (game.timeLeft <= 0) {
-                game.timeLeft = 0;
-                endGame(false);
-            }
+    if (game.gameOver) {
+        requestAnimationFrame(gameLoop);
+        return;
+    }
 
-            // Atualiza o texto do timer na tela
-            const minutes = Math.floor(game.timeLeft / 60);
-            const seconds = Math.floor(game.timeLeft % 60);
-            timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
-        if (game.isCharging) {
-            updatePowerAndAngle();
+    if (!game.isPaused) {
+        let timeMultiplier = 1;
+        if (game.activePunishment && game.activePunishment.type === 'timerSpeed') {
+            timeMultiplier = game.activePunishment.multiplier;
         }
         
-        if (game.isLaunched && game.projectile) {
-            const stillFlying = game.projectile.update();
-            let distance = Math.round(game.projectile.distanceTraveled);
-            
-            if (game.projectile.halfDistanceFlag) {
-                distance = Math.floor(distance * 0.5);
-            }
-            
-            game.distance = distance;
-            
-            game.camera.targetX = Math.max(0, game.projectile.x - canvas.width / 3);
-            game.camera.targetY = Math.max(0, Math.min(game.projectile.y - canvas.height / 2, 200));
-            
-            game.camera.x += (game.camera.targetX - game.camera.x) * game.camera.smoothing;
-            game.camera.y += (game.camera.targetY - game.camera.y) * game.camera.smoothing;
-            
-            if (!stillFlying) {
-                game.isLaunched = false;
-                
-                game.camera.x = 0;
-                game.camera.targetX = 0;
-                game.camera.y = 0;
-                game.camera.targetY = 0;
-                
-                hud.style.display = 'flex';
-                controlPanel.style.display = 'flex';
-                finishLine.style.display = 'block';
-                
-                distanceDisplay.textContent = formatDistance(game.distance);
-                
-                if (game.distance > game.bestDistance) {
-                    game.bestDistance = game.distance;
-                    bestDistanceDisplay.textContent = formatDistance(game.bestDistance);
-                }
-                
-                let earnedPoints = Math.floor(game.distance / 100) * (game.upgrades.pointsMultiplier || 1);
-                if (game.activePunishment && game.activePunishment.type === 'noPoints' && game.activePunishment.remaining > 0) {
-                    game.activePunishment.remaining--;
-                    earnedPoints = 0;
-                    if (game.activePunishment.remaining <= 0) {
-                        game.activePunishment = null;
-                    }
-                }
-                
-                if (game.activePunishment && game.activePunishment.type === 'halfDistance' && game.activePunishment.remaining > 0) {
-                    game.activePunishment.remaining--;
-                    if (game.activePunishment.remaining <= 0) {
-                        game.activePunishment = null;
-                    }
-                }
-                
-                game.points += earnedPoints;
-                pointsDisplay.textContent = Math.floor(game.points);
-                
-                if (game.distance >= game.finishDistance) {
-                    endGame(true);
-                } else {
-                    showUpgradeModal();
-                }
-            }
-            
-            if (game.projectile) {
-                ctx.save();
-                ctx.translate(-game.camera.x, -game.camera.y);
-                game.projectile.draw();
-                ctx.restore();
-            }
+        game.timeLeft -= deltaTime * timeMultiplier;
+        if (game.timeLeft <= 0) {
+            game.timeLeft = 0;
+            endGame(false);
         }
+
+        const minutes = Math.floor(game.timeLeft / 60);
+        const seconds = Math.floor(game.timeLeft % 60);
+        timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         
-        if (game.isCharging && !game.isLaunched) {
+        checkMilestones(deltaTime);
+        updateActivePunishments();
+    }
+    
+    if (game.isCharging) {
+        updatePowerAndAngle();
+    }
+    
+    if (game.isLaunched && game.projectile) {
+        handleProjectileUpdate();
+        
+        if (game.projectile) {
             ctx.save();
-            ctx.translate(200 - game.camera.x, canvas.height / 2 - game.camera.y);
-            ctx.rotate(-game.angle * Math.PI / 180);
-            ctx.strokeStyle = 'rgba(107, 207, 127, 0.8)';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(100, 0);
-            ctx.stroke();
-            
-            ctx.fillStyle = 'rgba(107, 207, 127, 0.8)';
-            ctx.beginPath();
-            ctx.moveTo(100, 0);
-            ctx.lineTo(90, -5);
-            ctx.lineTo(90, 5);
-            ctx.closePath();
-            ctx.fill();
+            ctx.translate(-game.camera.x, -game.camera.y);
+            game.projectile.draw();
             ctx.restore();
-        }
-        if(!isGameActive) {
-            checkMilestones(deltaTime);
-            updateActivePunishments();
         }
     }
     
+    if (game.isCharging && !game.isLaunched) {
+        ctx.save();
+        ctx.translate(200 - game.camera.x, canvas.height / 2 - game.camera.y);
+        ctx.rotate(-game.angle * Math.PI / 180);
+        ctx.strokeStyle = 'rgba(107, 207, 127, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(100, 0);
+        ctx.stroke();
+        
+        ctx.fillStyle = 'rgba(107, 207, 127, 0.8)';
+        ctx.beginPath();
+        ctx.moveTo(100, 0);
+        ctx.lineTo(90, -5);
+        ctx.lineTo(90, 5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
+    
     requestAnimationFrame(gameLoop);
-}
-
-function closeUpgradeModal() {
-    upgradeModal.style.display = 'none';
-    game.projectile = null;
-    game.distance = 0;
-    distanceDisplay.textContent = '0m';
 }
 
 updateFinishLine();
