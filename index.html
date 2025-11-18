@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projeto no Ar - Jogo Ágil</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- HUD -->
+        <div class="hud">
+            <div class="stat">
+                <span class="label">Distância:</span>
+                <span id="distance">0m</span>
+            </div>
+            <div class="stat">
+                <span class="label">Melhor:</span>
+                <span id="best-distance">0m</span>
+            </div>
+            <div class="stat timer">
+                <span class="label">⏱️ Tempo até Entrega:</span>
+                <span id="timer">10:00</span>
+            </div>
+            <div class="stat milestone-timer">
+                <span class="label" id="milestone-info">Meta 1: 5000m</span>
+                <span id="milestone-timer">1:00</span>
+            </div>
+            <div class="stat">
+                <span class="label">💰 Sprint Points:</span>
+                <span id="points">0</span>
+            </div>
+        </div>
+
+        <!-- Área de jogo -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Adicionando notificação de punição -->
+        <div id="punishment-notification" class="punishment-notification">
+            <div id="punishment-text"></div>
+        </div>
+
+        <!-- Painel de controle -->
+        <div class="control-panel">
+            <div class="power-meter">
+                <div class="meter-label">FORÇA</div>
+                <div class="meter-bar">
+                    <div id="power-fill" class="meter-fill"></div>
+                </div>
+                <div id="power-value" class="meter-value">0</div>
+            </div>
+
+            <button id="launch-button" class="launch-button">
+                <span class="button-text">LANÇAR</span>
+                <span class="button-icon">🚀</span>
+            </button>
+
+            <div class="angle-meter">
+                <div class="meter-label">ÂNGULO</div>
+                <div class="angle-display" id="angle-value">45°</div>
+            </div>
+        </div>
+
+        <!-- Meta/Linha de chegada -->
+        <div id="finish-line" class="finish-line">
+            <div class="finish-flag">🏁 META<br><span id="finish-distance">100.000km</span></div>
+        </div>
+    </div>
+
+    <!-- Modal de Upgrades -->
+    <div id="upgrade-modal" class="modal">
+        <div class="modal-content">
+            <h2>🎯 Sprint Retrospective</h2>
+            <p class="result-message">
+                <span id="result-text">Projeto lançado!</span><br>
+                <strong>Distância: <span id="modal-distance">0m</span></strong>
+            </p>
+            
+            <div class="upgrades-grid" id="upgrades-list"></div>
+            
+            <button id="continue-button" class="continue-button">Próximo Sprint 🚀</button>
+        </div>
+    </div>
+
+    <!-- Modal de Game Over -->
+    <div id="gameover-modal" class="modal">
+        <div class="modal-content gameover">
+            <h2 id="gameover-title">⏰ Deadline Atingido!</h2>
+            <p id="gameover-message" class="result-message"></p>
+            <button id="restart-button" class="continue-button">Novo Projeto 🔄</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
