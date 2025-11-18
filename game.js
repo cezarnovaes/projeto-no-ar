@@ -863,9 +863,11 @@ function formatDistance(meters) {
 function showUpgradeModal() {
     const upgradesList = document.getElementById('upgrades-list');
     const modalDistance = document.getElementById('modal-distance');
+    const modalPoints = document.getElementById('modal-points');
     const resultText = document.getElementById('result-text');
     
     modalDistance.textContent = formatDistance(game.distance);
+    modalPoints.textContent = '💰 ' + Math.floor(game.points) + ' SP';
     resultText.textContent = game.distance >= game.finishDistance ? 
         '🎉 Projeto Concluído!' : 
         '📊 Projeto em andamento...';

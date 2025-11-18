@@ -70,14 +70,16 @@
     <!-- Modal de Upgrades -->
     <div id="upgrade-modal" class="modal">
         <div class="modal-content">
-            <h2>🎯 Sprint Retrospective</h2>
+            <h2>🎯 Retrospectiva do Sprint</h2>
             <p class="result-message">
                 <span id="result-text">Projeto lançado!</span><br>
                 <strong>Distância: <span id="modal-distance">0m</span></strong>
+                </br>
+                <strong>Sprint Points: <span class="upgrade-cost" id="modal-points">0</span></strong>
             </p>
-            
-            <div class="upgrades-grid" id="upgrades-list"></div>
-            
+            <div id="upgrades-scroll-wrapper">
+                <div class="upgrades-grid" id="upgrades-list"></div>
+            </div>
             <button id="continue-button" class="continue-button">Próximo Sprint 🚀</button>
         </div>
     </div>
