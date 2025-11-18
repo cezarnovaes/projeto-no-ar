@@ -28,7 +28,7 @@ const game = {
     bestDistance: 0,
     points: 0,
     timeLeft: 600,
-    finishDistance: 100000,
+    finishDistance: 10000,
     projectile: null,
     upgrades: {},
     upgradeLevels: {},
@@ -48,14 +48,14 @@ const game = {
     },
     currentMilestoneIndex: 0,
     milestones: [
-        { distance: 5000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
-        { distance: 15000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
-        { distance: 30000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 45000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 60000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 75000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
-        { distance: 90000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
-        { distance: 100000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 }
+        { distance: 500, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 1500, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
+        { distance: 3000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 4500, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 6000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 7500, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
+        { distance: 9000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 10000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 }
     ],
     milestoneActive: false,
     punishments: [
@@ -182,7 +182,7 @@ class Projectile {
         this.x = 200;
         this.y = canvas.height / 2;
         const radians = angle * Math.PI / 180;
-        const baseVelocity = power * 14;
+        const baseVelocity = power * 7;
         this.velocityX = baseVelocity * Math.cos(radians);
         this.velocityY = -baseVelocity * Math.sin(radians);
         this.gravity = 0.4;
@@ -417,7 +417,7 @@ const upgradesDatabase = [
         baseCost: 50,
         effect: (level) => { 
             const reduction = logisticCurve(level, 14, 0.5, 7) * 15000;
-            game.finishDistance = Math.max(10000, 100000 - reduction); 
+            game.finishDistance = Math.max(10000, 10000 - reduction); 
             updateFinishLine(); 
         },
         getDescription: (level) => {
@@ -1082,7 +1082,7 @@ function restartGame() {
     game.bestDistance = 0;
     game.points = 0;
     game.timeLeft = 600;
-    game.finishDistance = 100000;
+    game.finishDistance = 10000;
     game.projectile = null;
     game.upgrades = {};
     game.upgradeLevels = {};
@@ -1096,14 +1096,14 @@ function restartGame() {
     game.dayNightCycle.isDay = true;
     game.currentMilestoneIndex = 0;
     game.milestones = [
-        { distance: 5000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
-        { distance: 15000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
-        { distance: 30000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 45000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 60000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 75000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
-        { distance: 90000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
-        { distance: 100000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 }
+        { distance: 500, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 1500, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
+        { distance: 3000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 4500, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 6000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 7500, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
+        { distance: 9000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 10000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 }
     ];
     game.milestoneActive = false;
     game.usedPunishments = [];
