@@ -95,17 +95,22 @@
     <!-- Modal de Upgrades -->
     <div id="upgrade-modal" class="modal">
         <div class="modal-content">
-            <h2>🎯 Retrospectiva do Sprint</h2>
-            <p class="result-message">
-                <span id="result-text">Projeto lançado!</span><br>
-                <strong>Distância: <span id="modal-distance">0m</span></strong>
-                </br>
-                <strong>Sprint Points: <span class="upgrade-cost" id="modal-points">0</span></strong>
-            </p>
-            <div id="upgrades-scroll-wrapper">
-                <div class="upgrades-grid" id="upgrades-list"></div>
+            <!-- Header compacto -->
+            <div class="modal-header">
+                <h2>🚀 <span id="modal-distance">0m</span></h2>
+                <h2>💰 <span id="modal-points">0m</span></h2>
+                <p class="result-message" id="result-text">Continue evoluindo!</p>
             </div>
-            <button id="continue-button" class="continue-button">Próximo Sprint 🚀</button>
+            
+            <!-- Área de scroll -->
+            <div id="upgrades-scroll-wrapper">
+                <div id="upgrades-grid" class="upgrades-grid"></div>
+            </div>
+            
+            <!-- Botão de continuar -->
+            <button class="continue-button" id="continue-button" onclick="closeUpgradeModal()">
+                Continuar ➜
+            </button>
         </div>
     </div>
 

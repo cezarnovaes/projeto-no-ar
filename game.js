@@ -957,65 +957,96 @@ function updateActivePunishments() {
 
 function showUpgradeModal() {
     game.isPaused = true;
-    const upgradesList = document.getElementById('upgrades-list');
+    const upgradesList = document.getElementById('upgrades-grid');
     const modalDistance = document.getElementById('modal-distance');
     const resultText = document.getElementById('result-text');
     
+    // Atualizar header
     modalDistance.textContent = formatDistance(game.distance);
     resultText.textContent = game.distance >= game.finishDistance ? 
         '🎉 Projeto Concluído!' : 
         '📊 Projeto em andamento...';
     
+    // Limpar lista
     upgradesList.innerHTML = '';
     
+    // Verificar se upgrades estão bloqueados
     const upgradesBlocked = game.activePunishment && game.activePunishment.type === 'noUpgrades';
     
+    // Mensagem de bloqueio
     if (upgradesBlocked) {
-        const blockedMessage = document.createElement('div');
-        blockedMessage.style.cssText = 'grid-column: 1 / -1; text-align: center; color: #ff6b6b; font-size: 18px; font-weight: bold; padding: 20px; background: rgba(255, 107, 107, 0.2); border-radius: 10px; margin-bottom: 20px;';
-        blockedMessage.textContent = '🔒 Licença de Software Expirou! Upgrades bloqueados temporariamente.';
-        upgradesList.appendChild(blockedMessage);
+        upgradesList.innerHTML = `
+            <div class="upgrades-blocked-message">
+                🔒 Licença de Software Expirou! Upgrades bloqueados temporariamente.
+            </div>
+        `;
     }
     
+    // Renderizar upgrades de forma otimizada
     upgradesDatabase.forEach(upgrade => {
-        const card = document.createElement('div');
-        card.className = 'upgrade-card';
-        
-        const currentLevel = game.upgradeLevels[upgrade.id] || 0;
-        const isMaxLevel = currentLevel >= upgrade.maxLevel;
-        const cost = getUpgradeCost(upgrade, currentLevel);
-        const canAfford = game.points >= cost;
-        
-        if (currentLevel === upgrade.maxLevel) {
-            card.classList.add('max-level');
-            card.style.background = 'linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%)';
-            card.style.border = '3px solid #ff8c00';
-            card.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.8)';
-            card.style.animation = 'goldenGlow 2s infinite';
-        } else if (currentLevel > 0) {
-            card.classList.add('purchased');
-        } else if (!canAfford || upgradesBlocked) {
-            card.classList.add('locked');
-        }
-        
-        const description = upgrade.getDescription ? upgrade.getDescription(currentLevel + 1) : upgrade.description;
-        
-        card.innerHTML = `
-            <div class="upgrade-icon">${upgrade.icon}</div>
-            <div class="upgrade-title">${upgrade.name}</div>
-            <div class="upgrade-description">${description}</div>
-            <div class="upgrade-cost">${isMaxLevel ? '⭐ MÁXIMO' : '💰 ' + cost + ' SP'}</div>
-            ${currentLevel > 0 ? `<div class="upgrade-badge">NÍVEL ${currentLevel}</div>` : ''}
-        `;
-        
-        if (!isMaxLevel && canAfford && !upgradesBlocked) {
-            card.addEventListener('click', () => purchaseUpgrade(upgrade, cost));
-        }
-        
+        const card = createUpgradeCard(upgrade, upgradesBlocked);
         upgradesList.appendChild(card);
     });
     
     upgradeModal.style.display = 'block';
+}
+
+// Função auxiliar para criar card de upgrade
+function createUpgradeCard(upgrade, isBlocked) {
+    const card = document.createElement('div');
+    card.className = 'upgrade-card';
+    
+    const currentLevel = game.upgradeLevels[upgrade.id] || 0;
+    const isMaxLevel = currentLevel >= upgrade.maxLevel;
+    const cost = getUpgradeCost(upgrade, currentLevel);
+    const canAfford = game.points >= cost;
+    
+    // Aplicar classes de estado
+    if (isMaxLevel) {
+        card.classList.add('max-level');
+    } else if (currentLevel > 0) {
+        card.classList.add('purchased');
+    } else if (!canAfford || isBlocked) {
+        card.classList.add('locked');
+    }
+    
+    // Descrição dinâmica
+    const description = upgrade.getDescription ? 
+        upgrade.getDescription(currentLevel + 1) : 
+        upgrade.description;
+    
+    // Badge de nível (apenas se já comprado)
+    const levelBadge = currentLevel > 0 ? 
+        `<div class="upgrade-badge">LV ${currentLevel}</div>` : 
+        '';
+    
+    // Texto do custo
+    const costText = isMaxLevel ? 
+        '⭐ MÁXIMO' : 
+        `💰 ${cost} SP`;
+    
+    // Estrutura HTML otimizada
+    card.innerHTML = `
+        ${levelBadge}
+        <div class="upgrade-icon">${upgrade.icon}</div>
+        <div class="upgrade-title">${upgrade.name}</div>
+        <div class="upgrade-description">${description}</div>
+        <div class="upgrade-cost">${costText}</div>
+    `;
+    
+    // Event listener condicional
+    if (!isMaxLevel && canAfford && !isBlocked) {
+        card.addEventListener('click', () => {
+            purchaseUpgrade(upgrade, cost);
+            // Feedback visual
+            card.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                card.style.transform = '';
+            }, 100);
+        });
+    }
+    
+    return card;
 }
 
 function purchaseUpgrade(upgrade, cost) {
@@ -1043,9 +1074,92 @@ function purchaseUpgrade(upgrade, cost) {
 function closeUpgradeModal() {
     upgradeModal.style.display = 'none';
     game.isPaused = false;
-    game.projectile = null;
-    game.distance = 0;
-    distanceDisplay.textContent = '0m';
+    
+    // Verificar se atingiu a linha de chegada
+    if (game.distance >= game.finishDistance) {
+        showGameOverModal();
+    }
+}
+
+function createUpgradeCardMobile(upgrade, isBlocked) {
+    const card = document.createElement('div');
+    card.className = 'upgrade-card';
+    
+    const currentLevel = game.upgradeLevels[upgrade.id] || 0;
+    const isMaxLevel = currentLevel >= upgrade.maxLevel;
+    const cost = getUpgradeCost(upgrade, currentLevel);
+    const canAfford = game.points >= cost;
+    
+    if (isMaxLevel) card.classList.add('max-level');
+    else if (currentLevel > 0) card.classList.add('purchased');
+    else if (!canAfford || isBlocked) card.classList.add('locked');
+    
+    const description = upgrade.getDescription ? 
+        upgrade.getDescription(currentLevel + 1) : 
+        upgrade.description;
+    
+    const levelBadge = currentLevel > 0 ? 
+        `<div class="upgrade-badge">LV ${currentLevel}</div>` : '';
+    
+    const costText = isMaxLevel ? '⭐ MAX' : `💰 ${cost}`;
+    
+    // Layout horizontal para mobile
+    card.innerHTML = `
+        ${levelBadge}
+        <div class="upgrade-icon">${upgrade.icon}</div>
+        <div class="upgrade-content">
+            <div class="upgrade-title">${upgrade.name}</div>
+            <div class="upgrade-description">${description}</div>
+            <div class="upgrade-cost">${costText}</div>
+        </div>
+    `;
+    
+    if (!isMaxLevel && canAfford && !isBlocked) {
+        card.addEventListener('click', () => purchaseUpgrade(upgrade, cost));
+    }
+    
+    return card;
+}
+
+// Detectar se é mobile e usar layout apropriado
+function isMobileDevice() {
+    return window.innerWidth <= 480;
+}
+
+// Atualizar showUpgradeModal para usar versão mobile se necessário
+function showUpgradeModalResponsive() {
+    game.isPaused = true;
+    const upgradesList = document.getElementById('upgrades-list');
+    const modalDistance = document.getElementById('modal-distance');
+    const resultText = document.getElementById('result-text');
+    
+    modalDistance.textContent = formatDistance(game.distance);
+    resultText.textContent = game.distance >= game.finishDistance ? 
+        '🎉 Concluído!' : 
+        '📊 Em andamento...';
+    
+    upgradesList.innerHTML = '';
+    
+    const upgradesBlocked = game.activePunishment && 
+                            game.activePunishment.type === 'noUpgrades';
+    
+    if (upgradesBlocked) {
+        upgradesList.innerHTML = `
+            <div class="upgrades-blocked-message">
+                🔒 Upgrades bloqueados temporariamente
+            </div>
+        `;
+    }
+    
+    const isMobile = isMobileDevice();
+    const createCard = isMobile ? createUpgradeCardMobile : createUpgradeCard;
+    
+    upgradesDatabase.forEach(upgrade => {
+        const card = createCard(upgrade, upgradesBlocked);
+        upgradesList.appendChild(card);
+    });
+    
+    upgradeModal.style.display = 'block';
 }
 
 function endGame(won) {
@@ -1193,14 +1307,14 @@ function gameLoop() {
         ctx.save();
         ctx.translate(200 - game.camera.x, canvas.height / 2 - game.camera.y);
         ctx.rotate(-game.angle * Math.PI / 180);
-        ctx.strokeStyle = 'rgba(107, 207, 127, 0.8)';
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#0be94dcc';
+        ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(100, 0);
         ctx.stroke();
         
-        ctx.fillStyle = 'rgba(107, 207, 127, 0.8)';
+        ctx.fillStyle = '#0be94dcc';
         ctx.beginPath();
         ctx.moveTo(100, 0);
         ctx.lineTo(90, -5);
@@ -1324,7 +1438,7 @@ const celebrationProgress = document.getElementById('celebration-progress');
 const overlay = document.getElementById('milestone-overlay');
 const celebration = document.getElementById('milestone-celebration');
 
-celebrationTitle.textContent = '🎉 META ATINGIDA! 🎉';
+celebrationTitle.textContent = '🎉 META ATINGIDA!';
 celebrationMessage.textContent = `Meta ${milestoneIndex + 1}: ${milestone.distance}m concluída em tempo!`;
 
 // Criar lista de recompensas
