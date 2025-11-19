@@ -28,7 +28,7 @@ const game = {
     bestDistance: 0,
     points: 0,
     timeLeft: 600,
-    finishDistance: 14000,
+    finishDistance: 30000,
     projectile: null,
     upgrades: {},
     upgradeLevels: {},
@@ -53,10 +53,12 @@ const game = {
         { distance: 4000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
         { distance: 5500, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
         { distance: 7000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 8000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
-        { distance: 9000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
-        { distance: 10000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
-        { distance: 14000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 }
+        { distance: 9000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
+        { distance: 11000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 14000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 20000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 25000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 30000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 }
     ],
     milestoneActive: false,
     punishments: [
@@ -418,7 +420,7 @@ const upgradesDatabase = [
         baseCost: 50,
         effect: (level) => { 
             const reduction = logisticCurve(level, 14, 0.5, 7) * 15000;
-            game.finishDistance = Math.max(10000, 14000 - reduction); 
+            game.finishDistance = Math.max(10000, 30000 - reduction); 
             updateFinishLine(); 
         },
         getDescription: (level) => {
@@ -1201,7 +1203,7 @@ function restartGame() {
     game.bestDistance = 0;
     game.points = 0;
     game.timeLeft = 600;
-    game.finishDistance = 14000;
+    game.finishDistance = 30000;
     game.projectile = null;
     game.upgrades = {};
     game.upgradeLevels = {};
@@ -1220,10 +1222,13 @@ function restartGame() {
         { distance: 4000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
         { distance: 5500, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
         { distance: 7000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 8000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
-        { distance: 9000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 9000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
         { distance: 10000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
-        { distance: 14000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 }
+        { distance: 11000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 14000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 20000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 25000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 30000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 }
     ];
     game.milestoneActive = false;
     game.usedPunishments = [];
@@ -1369,7 +1374,7 @@ function gameLoop() {
         ]
     },
     {
-        distance: 8000,
+        distance: 9000,
         rewards: [
             { icon: '💰', text: '+300 Sprint Points', value: 300, type: 'points' },
             { icon: '⚡', text: '+15% Força Permanente', value: 1.15, type: 'powerBoost' },
@@ -1377,7 +1382,7 @@ function gameLoop() {
         ]
     },
     {
-        distance: 9000,
+        distance: 11000,
         rewards: [
             { icon: '💰', text: '+400 Sprint Points', value: 400, type: 'points' },
             { icon: '⏱️', text: '+40 segundos', value: 40, type: 'time' },
@@ -1385,7 +1390,7 @@ function gameLoop() {
         ]
     },
     {
-        distance: 10000,
+        distance: 14000,
         rewards: [
             { icon: '💰', text: '+500 Sprint Points', value: 400, type: 'points' },
             { icon: '⏱️', text: '+60 segundos', value: 40, type: 'time' },
@@ -1393,9 +1398,25 @@ function gameLoop() {
         ]
     },
     {
-        distance: 14000,
+        distance: 20000,
         rewards: [
             { icon: '💰', text: '+600 Sprint Points', value: 400, type: 'points' },
+            { icon: '⏱️', text: '+70 segundos', value: 40, type: 'time' },
+            { icon: '⚡', text: '+25% Força Permanente', value: 1.20, type: 'powerBoost' }
+        ]
+    },
+    {
+        distance: 25000,
+        rewards: [
+            { icon: '💰', text: '+700 Sprint Points', value: 400, type: 'points' },
+            { icon: '⏱️', text: '+70 segundos', value: 40, type: 'time' },
+            { icon: '⚡', text: '+25% Força Permanente', value: 1.20, type: 'powerBoost' }
+        ]
+    },
+    {
+        distance: 30000,
+        rewards: [
+            { icon: '💰', text: '+800 Sprint Points', value: 400, type: 'points' },
             { icon: '⏱️', text: '+70 segundos', value: 40, type: 'time' },
             { icon: '⚡', text: '+25% Força Permanente', value: 1.20, type: 'powerBoost' }
         ]
