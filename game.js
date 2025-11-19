@@ -48,12 +48,12 @@ const game = {
     },
     currentMilestoneIndex: 0,
     milestones: [
-        { distance: 500, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
-        { distance: 1500, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
-        { distance: 3000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 4500, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 6000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 7500, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
+        { distance: 1500, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 2500, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
+        { distance: 4000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 5500, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 7000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 8000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
         { distance: 9000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
         { distance: 10000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 }
     ],
@@ -873,10 +873,14 @@ function checkMilestones(deltaTime) {
     const milestoneInfoDisplay = document.getElementById('milestone-info');
     milestoneInfoDisplay.textContent = `Meta ${game.currentMilestoneIndex + 1}: ${currentMilestone.distance}m`;
     
-    if (game.bestDistance >= currentMilestone.distance) {
+     if (game.bestDistance >= currentMilestone.distance) {
         currentMilestone.completed = true;
         currentMilestone.checked = true;
         game.milestoneActive = false;
+        
+        // ADICIONAR AQUI: Mostrar celebração
+        showMilestoneCelebration(game.currentMilestoneIndex);
+        
         game.currentMilestoneIndex++;
         
         if (game.currentMilestoneIndex < game.milestones.length) {
@@ -1096,12 +1100,12 @@ function restartGame() {
     game.dayNightCycle.isDay = true;
     game.currentMilestoneIndex = 0;
     game.milestones = [
-        { distance: 500, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
-        { distance: 1500, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
-        { distance: 3000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 4500, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 6000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
-        { distance: 7500, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
+        { distance: 1500, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
+        { distance: 2500, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
+        { distance: 4000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 5500, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 7000, timeLimit: 120, completed: false, checked: false, timeRemaining: 120 },
+        { distance: 8000, timeLimit: 90, completed: false, checked: false, timeRemaining: 90 },
         { distance: 9000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 },
         { distance: 10000, timeLimit: 60, completed: false, checked: false, timeRemaining: 60 }
     ];
@@ -1206,6 +1210,167 @@ function gameLoop() {
     
     requestAnimationFrame(gameLoop);
 }
+
+ const milestoneRewards = [
+    {
+        distance: 1500,
+        rewards: [
+            { icon: '💰', text: '+50 Sprint Points', value: 50, type: 'points' },
+            { icon: '⏱️', text: '+15 segundos', value: 15, type: 'time' },
+            { icon: '🎯', text: 'Primeiro Marco!', value: null, type: 'badge' }
+        ]
+    },
+    {
+        distance: 2500,
+        rewards: [
+            { icon: '💰', text: '+100 Sprint Points', value: 100, type: 'points' },
+            { icon: '⏱️', text: '+20 segundos', value: 20, type: 'time' },
+            { icon: '⚡', text: '+5% Força Permanente', value: 1.05, type: 'powerBoost' }
+        ]
+    },
+    {
+        distance: 4000,
+        rewards: [
+            { icon: '💰', text: '+150 Sprint Points', value: 150, type: 'points' },
+            { icon: '⏱️', text: '+25 segundos', value: 25, type: 'time' },
+            { icon: '🎯', text: 'Meio do Caminho!', value: null, type: 'badge' }
+        ]
+    },
+    {
+        distance: 5500,
+        rewards: [
+            { icon: '💰', text: '+200 Sprint Points', value: 200, type: 'points' },
+            { icon: '⚡', text: '+10% Força Permanente', value: 1.10, type: 'powerBoost' },
+            { icon: '🔥', text: 'Streak de Sucesso!', value: null, type: 'badge' }
+        ]
+    },
+    {
+        distance: 7000,
+        rewards: [
+            { icon: '💰', text: '+250 Sprint Points', value: 250, type: 'points' },
+            { icon: '⏱️', text: '+30 segundos', value: 30, type: 'time' },
+            { icon: '🌟', text: 'Veterano Ágil', value: null, type: 'badge' }
+        ]
+    },
+    {
+        distance: 8000,
+        rewards: [
+            { icon: '💰', text: '+300 Sprint Points', value: 300, type: 'points' },
+            { icon: '⚡', text: '+15% Força Permanente', value: 1.15, type: 'powerBoost' },
+            { icon: '🏆', text: 'Quase Lá!', value: null, type: 'badge' }
+        ]
+    },
+    {
+        distance: 9000,
+        rewards: [
+            { icon: '💰', text: '+400 Sprint Points', value: 400, type: 'points' },
+            { icon: '⏱️', text: '+40 segundos', value: 40, type: 'time' },
+            { icon: '⚡', text: '+20% Força Permanente', value: 1.20, type: 'powerBoost' }
+        ]
+    },
+    {
+        distance: 10000,
+        rewards: [
+            { icon: '💰', text: '+500 Sprint Points', value: 400, type: 'points' },
+            { icon: '⏱️', text: '+60 segundos', value: 40, type: 'time' },
+            { icon: '⚡', text: '+20% Força Permanente', value: 1.20, type: 'powerBoost' }
+        ]
+    }
+];
+
+function showMilestoneCelebration(milestoneIndex) {
+const milestone = game.milestones[milestoneIndex];
+const rewards = milestoneRewards[milestoneIndex];
+
+if (!rewards) return;
+
+// Pausar o jogo
+game.isPaused = true;
+
+// Aplicar recompensas
+rewards.rewards.forEach(reward => {
+    switch(reward.type) {
+        case 'points':
+            game.points += reward.value;
+            pointsDisplay.textContent = Math.floor(game.points);
+            break;
+        case 'time':
+            game.timeLeft += reward.value;
+            break;
+        case 'powerBoost':
+            if (!game.upgrades.milestoneBonus) {
+                game.upgrades.milestoneBonus = 1;
+            }
+            game.upgrades.milestoneBonus *= reward.value;
+            break;
+    }
+});
+
+// Atualizar UI do popup
+const celebrationTitle = document.getElementById('celebration-title');
+const celebrationMessage = document.getElementById('celebration-message');
+const celebrationRewards = document.getElementById('celebration-rewards');
+const celebrationProgress = document.getElementById('celebration-progress');
+const overlay = document.getElementById('milestone-overlay');
+const celebration = document.getElementById('milestone-celebration');
+
+celebrationTitle.textContent = '🎉 META ATINGIDA! 🎉';
+celebrationMessage.textContent = `Meta ${milestoneIndex + 1}: ${milestone.distance}m concluída em tempo!`;
+
+// Criar lista de recompensas
+celebrationRewards.innerHTML = '';
+rewards.rewards.forEach(reward => {
+    const rewardItem = document.createElement('div');
+    rewardItem.className = 'reward-item';
+    rewardItem.innerHTML = `
+        <span class="reward-icon">${reward.icon}</span>
+        <span>${reward.text}</span>
+    `;
+    celebrationRewards.appendChild(rewardItem);
+});
+
+// Atualizar barra de progresso
+const progressPercent = ((milestoneIndex + 1) / game.milestones.length) * 100;
+celebrationProgress.style.width = progressPercent + '%';
+
+// Criar confetes
+createConfetti(celebration);
+
+// Mostrar popup
+overlay.style.display = 'block';
+celebration.style.display = 'block';
+}
+
+function createConfetti(container) {
+const colors = ['#ffd700', '#ff6b6b', '#6bcf7f', '#667eea', '#ff69b4'];
+for (let i = 0; i < 50; i++) {
+    setTimeout(() => {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDelay = Math.random() * 0.5 + 's';
+        confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        container.appendChild(confetti);
+
+        setTimeout(() => confetti.remove(), 3500);
+    }, i * 30);
+}
+}
+
+function closeMilestoneCelebration() {
+const overlay = document.getElementById('milestone-overlay');
+const celebration = document.getElementById('milestone-celebration');
+
+overlay.style.display = 'none';
+celebration.style.display = 'none';
+
+// Despausar o jogo
+game.isPaused = false;
+}
+
+// Event listener para o botão de fechar
+document.getElementById('celebration-close').addEventListener('click', closeMilestoneCelebration);
 
 updateFinishLine();
 lastTime = Date.now();

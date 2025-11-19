@@ -415,3 +415,208 @@ body {
     color: white;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
+
+.milestone-celebration {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3000;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: 5px solid #ffd700;
+    border-radius: 25px;
+    padding: 40px 60px;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.9), 0 0 150px rgba(255, 215, 0, 0.8);
+    animation: milestoneAppear 0.6s ease-out, celebrationFloat 2s ease-in-out infinite;
+    max-width: 600px;
+    text-align: center;
+    min-width: 400px;
+}
+
+@keyframes milestoneAppear {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.3) rotate(-10deg);
+    }
+    60% {
+        transform: translate(-50%, -50%) scale(1.1) rotate(5deg);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    }
+}
+
+@keyframes celebrationFloat {
+    0%, 100% {
+        transform: translate(-50%, -50%) translateY(0px);
+    }
+    50% {
+        transform: translate(-50%, -50%) translateY(-10px);
+    }
+}
+
+.milestone-celebration-title {
+    font-size: 48px;
+    font-weight: bold;
+    color: #ffd700;
+    margin-bottom: 20px;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+    animation: titlePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes titlePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.milestone-celebration-message {
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.milestone-rewards {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 25px;
+    margin: 25px 0;
+    border: 2px solid rgba(255, 215, 0, 0.5);
+}
+
+.milestone-rewards-title {
+    color: #ffd700;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.reward-item {
+    color: white;
+    font-size: 18px;
+    margin: 12px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    animation: rewardSlideIn 0.5s ease-out backwards;
+}
+
+.reward-item:nth-child(1) { animation-delay: 0.2s; }
+.reward-item:nth-child(2) { animation-delay: 0.4s; }
+.reward-item:nth-child(3) { animation-delay: 0.6s; }
+
+@keyframes rewardSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.reward-icon {
+    font-size: 24px;
+    animation: iconSpin 1s ease-in-out;
+}
+
+@keyframes iconSpin {
+    0% { transform: rotate(0deg) scale(0); }
+    50% { transform: rotate(180deg) scale(1.2); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+.milestone-close-button {
+    margin-top: 25px;
+    padding: 15px 50px;
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(135deg, #6bcf7f, #4caf50);
+    border: 3px solid #ffd700;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 20px rgba(107, 207, 127, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.milestone-close-button:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 30px rgba(107, 207, 127, 0.7);
+    background: linear-gradient(135deg, #7fdf9f, #5cbf60);
+}
+
+.milestone-close-button:active {
+    transform: translateY(-1px) scale(1.02);
+}
+
+/* Confetes animados */
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #ffd700;
+    animation: confettiFall 3s ease-out forwards;
+}
+
+@keyframes confettiFall {
+    0% {
+        transform: translateY(-100px) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(600px) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+.milestone-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2999;
+    animation: overlayFadeIn 0.3s ease;
+}
+
+@keyframes overlayFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.milestone-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    margin-top: 20px;
+    overflow: hidden;
+}
+
+.milestone-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6bcf7f, #ffd700);
+    border-radius: 10px;
+    animation: progressFill 1s ease-out;
+}
+
+@keyframes progressFill {
+    from { width: 0%; }
+}
